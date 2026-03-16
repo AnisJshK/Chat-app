@@ -4,9 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc -b",
-    "start":"node ./dist/config.js",
-    "dev":"npm run build && npm run start"
+    "build": "tsc -b"
   },
   "devDependencies": {
     "@repo/typescript-config":"workspace:*"

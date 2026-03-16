@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -b",
     "start": "node ./dist/index.js",
-    "dev": "npm build && npm install"
+    "dev": "npm run build && npm run start"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
