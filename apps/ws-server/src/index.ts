@@ -50,8 +50,7 @@ wss.on("connection", (socket, request) => {
         try {
             const parsed = JSON.parse(message.toString());
 
-            /* ---------------- JOIN ROOM ---------------- */
-
+          
             if (parsed.type === "join_room") {
 
                 const roomId = parsed.roomId;
@@ -79,7 +78,6 @@ wss.on("connection", (socket, request) => {
                 }));
             }
 
-            /* ---------------- CHAT ---------------- */
 
             if (parsed.type === "chat") {
 
