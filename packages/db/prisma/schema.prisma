@@ -1,5 +1,3 @@
-// Prisma Schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,6 +12,10 @@ model User {
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
+
+  // 🔥 NEW
+  isOnline  Boolean  @default(false)
+  lastSeen  DateTime?
 
   messages  Message[]
   rooms     RoomMember[]
@@ -34,6 +36,9 @@ model RoomMember {
   roomId   String
   joinedAt DateTime @default(now())
 
+  // 🔥 NEW (core for unread system)
+  lastReadAt DateTime?
+
   user     User @relation(fields: [userId], references: [id])
   room     Room @relation(fields: [roomId], references: [id])
 
@@ -47,6 +52,15 @@ model Message {
   roomId    String
   createdAt DateTime @default(now())
 
+  // 🔥 NEW (for ticks in UI)
+  status    MessageStatus @default(SENT)
+
   user      User @relation(fields: [userId], references: [id])
   room      Room @relation(fields: [roomId], references: [id])
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
 }
