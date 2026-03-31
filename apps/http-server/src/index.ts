@@ -102,24 +102,107 @@ app.post("/user/joinroom", userMiddleware, async (req: any, res) => {
 });
 
 app.get("/user/rooms", userMiddleware, async (req: any, res) => {
-  const rooms = await prismaClient.roomMember.findMany({
-    where: { userId: req.userId },
-    include: { room: true },
-  });
-  return res.json({ rooms });
+  try {
+    const userId = req.userId;
+    const memberhips = await prismaClient.roomMember.findMany({
+      where:{userId},
+      include:{
+        room:{
+          include:{
+            messages:{
+              orderBy:{createdAt:"desc"},
+              take:1,
+            },
+          },
+        },
+      }
+    })
+
+    const rooms = await Promise.all(
+      memberhips.map(async(m)=>{
+        const lastMessage = m.room.messages[0];
+
+        const unread = await prismaClient.message.count({
+          where:{
+            roomId:m.roomId,
+            createdAt:{
+              gt:m.lastReadAt||new Date(0),
+            },
+            NOT:{
+              userId,
+            },
+          }
+        });
+        return{
+          roomId:m.room.id,
+          name:m.room.name,
+
+          lastMessage:lastMessage?.content||"",
+          time:lastMessage?.createdAt||m.room.createdAt,
+          unread,
+        };
+      })
+    );
+    return res.json({rooms});
+  } catch (error) {
+    
+  }
 });
 
 app.get("/messages/:roomId", userMiddleware, async (req: any, res) => {
   const roomId = req.params.roomId; // ✅ was req.params.body
-
+  const userId = req.userId;
   const messages = await prismaClient.message.findMany({
     where: { roomId },
     include: { user: { select: { email: true } } },
     orderBy: { createdAt: "desc" },
     take: 50,
   });
-  return res.json({ messages });
+  const formatted = messages.map((m)=>({
+    id:m.id,
+    text:m.content,
+    senderId:m.userId,
+    createdAt:m.createdAt,
+    status:m.status,
+  }));
+  return res.json({ messages:formatted });
 });
+
+app.get("/user/profile",userMiddleware,async(req:any,res)=>{
+  try {
+    const user = await prismaClient.user.findUnique({
+      where:{id:req.userId},
+      select:{
+        id:true,
+        email:true,
+        isOnline:true,
+        lastSeen:true,
+      }
+    });
+    return res.json({user})
+  } catch (error) {
+    return res.status(500).json({message:"Failed to fetch user"});
+  }
+
+})
+app.post("/messages/read",userMiddleware,async(req:any,res)=>{
+  const {roomId} = req.body;
+
+  await prismaClient.roomMember.update({
+    where:{
+      userId_roomId:{
+        userId:req.userId,
+        roomId,
+      },
+    },
+    data:{
+      lastReadAt:new Date(),
+    },
+  });
+  return res.json({
+    message:"Marked as read"
+  });
+})
 
 const PORT = 3001;
 app.listen(PORT, () => {

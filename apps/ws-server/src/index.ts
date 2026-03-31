@@ -16,9 +16,15 @@ interface UserSocket {
 
 let users: UserSocket[] = [];
 
+function broadcast(data:any){
+    users.forEach(u=>{
+        u.socket.send(JSON.stringify(data));
+    });
+};
+
 const wss = new WebSocketServer({ port: 8080 });
 
-wss.on("connection", (socket, request) => {
+wss.on("connection", async(socket, request) => {
 
     const params = new URLSearchParams(request.url?.split("?")[1]);
     const token = params.get("token");
@@ -38,12 +44,20 @@ wss.on("connection", (socket, request) => {
         return;
     }
 
+    await prismaClient.user.update({
+        where:{id:userId},
+        data:{isOnline:true}
+    })
+
     const user: UserSocket = {
         socket,
         userId
     };
-
     users.push(user);
+    broadcast({
+        type:"online",
+        userId
+    });
 
     socket.on("message", async (message) => {
 
@@ -91,11 +105,12 @@ wss.on("connection", (socket, request) => {
 
                 const messageText = parsed.message;
 
-                await prismaClient.message.create({
+               const newMessage =  await prismaClient.message.create({
                     data: {
                         content: messageText,
                         userId,
-                        roomId: user.roomId
+                        roomId: user.roomId,
+                        status:"SENT"
                     }
                 });
 
@@ -106,10 +121,56 @@ wss.on("connection", (socket, request) => {
                 roomUsers.forEach(u => {
                     u.socket.send(JSON.stringify({
                         type: "chat",
-                        message: messageText,
-                        userId
+                        message: {
+                            id:newMessage.id,
+                            text:newMessage.content,
+                            senderId:userId,
+                            createdAt:newMessage.createdAt,
+                            status:"DELIVERED"
+                        }
                     }));
                 });
+                await prismaClient.message.update({
+                    where:{id:newMessage.id},
+                    data:{status:"DELIVERED"}
+                });
+                return;
+            }
+            if(parsed.type==="read"){
+                const  {roomId} = parsed;
+
+                await prismaClient.roomMember.update({
+                    where:{
+                        userId_roomId:{
+                            userId,
+                            roomId,
+                        },
+                    },
+                    data:{
+                        lastReadAt:new Date(),
+                    },
+                });
+                const roomUsers = users.filter(
+                    (u)=> u.roomId===roomId
+                );
+                roomUsers.forEach((u)=>{
+                    u.socket.send(JSON.stringify({
+                        type:"read",
+                        userId,
+                        roomId,
+                    }));
+                });
+                //update message status => read
+                await prismaClient.message.updateMany({
+                    where:{
+                        roomId,
+                        NOT:{userId},
+                    },
+                    data:{
+                        status:"READ"
+                    },
+                });
+                return;
             }
 
         } catch (error) {
@@ -120,10 +181,21 @@ wss.on("connection", (socket, request) => {
         }
     });
 
-    socket.on("close", () => {
+    socket.on("close", async() => {
         users = users.filter(u => u.socket !== socket);
-    });
 
+        await prismaClient.user.update({
+            where:{id:userId},
+            data:{
+                isOnline:false,
+                lastSeen:new Date(),
+            },
+        });
+        broadcast({
+            type:"offline",
+            userId,
+        });
+    });
 });
 
 console.log("websocket running on port 8080");
