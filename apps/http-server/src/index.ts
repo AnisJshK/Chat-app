@@ -5,12 +5,15 @@ import jwt from "jsonwebtoken";
 import { CreateUserSchema, RoomSchema } from "@repo/common/types";
 import { prismaClient } from "@repo/db/client";
 import userMiddleware from "./userMiddleware";
-
+import dotenv from "dotenv";
+dotenv.config();
+// import {JWT_SECRET} from "@repo/backend-common/dist/config"
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-const JWT_SECRET = "34gfgarg45gfbrw";
+const JWT_SECRET = process.env.JWT_SECRET!;
+
 
 app.post("/user/signup", async (req, res) => {
   const parsed = CreateUserSchema.safeParse(req.body);
@@ -53,6 +56,7 @@ app.post("/user/signin", async (req, res) => {
     const token = jwt.sign({ userId: user.id }, JWT_SECRET);
     return res.json({ token });
   } catch (error) {
+    console.log(error)
     return res.status(500).json({ message: "Signin failed" });
   }
 });

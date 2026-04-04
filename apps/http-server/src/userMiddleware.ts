@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from 'jsonwebtoken'
+// import { JWT_SECRET } from "@repo/backend-common/dist/config";
 
-const JWT_SECRET = "34gfgarg45gfbrw";
+const JWT_SECRET = process.env.JWT_SECRET!;
 export interface JwtPayload {
   userId: string;
 }

@@ -1,9 +1,10 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import jwt from 'jsonwebtoken';
 import { prismaClient } from "@repo/db/client";
+import  dotenv from "dotenv";
+dotenv.config();
 
-const JWT_SECRET = "34gfgarg45gfbrw";
-
+const JWT_SECRET = process.env.JWT_SECRET!;
 type JwtPayload = {
     userId: string
 }
