@@ -44,7 +44,7 @@ interface Chat {
   messages: Message[];
 }
 
-const ME = "me";
+const ME = localStorage.getItem("userId");
 
 const gradients = [
   "from-indigo-500 to-violet-500",
@@ -73,8 +73,8 @@ function formatTime(dateString: string) {
 function formatMsg(m: any): Message {
   return {
     id: m.id,
-    senderId: m.senderId,
-    text: m.text,
+    senderId: m.userId,
+    text: m.content,
     time: formatTime(m.createdAt),
     status: m.status.toLowerCase(),
   };
@@ -137,14 +137,14 @@ export default function Dashboard() {
               return {
                 ...chat,
                 messages: [...chat.messages, formatMsg(msg)],
-                lastMessage: msg.text,
+                lastMessage: msg.content,
                 time: "now",
               };
             } else {
               return {
                 ...chat,
                 unread: chat.unread + 1,
-                lastMessage: msg.text,
+                lastMessage: msg.content,
                 time: "now",
               };
             }
@@ -175,13 +175,22 @@ export default function Dashboard() {
         roomId: id,
       }),
     );
+    const token = localStorage.getItem("token");
 
     const res = await fetch(`http://localhost:3001/messages/${id}`, {
       headers: {
-        Authorization: localStorage.getItem("token") || "",
+        Authorization: `Bearer ${token}`,
       },
     });
+    if (!res.ok) {
+    console.error("Failed to fetch messages", res.status);
+    return;
+  }
     const data = await res.json();
+     if (!data.messages) {
+    console.error("Invalid response", data);
+    return;
+  }
 
     setChats((prev) =>
       prev.map((c) =>

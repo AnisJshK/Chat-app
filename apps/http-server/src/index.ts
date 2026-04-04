@@ -150,7 +150,7 @@ app.get("/user/rooms", userMiddleware, async (req: any, res) => {
 });
 
 app.get("/messages/:roomId", userMiddleware, async (req: any, res) => {
-  const roomId = req.params.roomId; // ✅ was req.params.body
+  const roomId = req.params.roomId;
   const userId = req.userId;
   const messages = await prismaClient.message.findMany({
     where: { roomId },
