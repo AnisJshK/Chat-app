@@ -94,9 +94,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchRooms = async () => {
+      const token = localStorage.getItem("token");
       const res = await fetch("http://localhost:3001/user/rooms", {
         headers: {
-          Authorization: localStorage.getItem("token") || "",
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -160,63 +161,69 @@ export default function Dashboard() {
           prev.map((c) => (c.id === data.userId ? { ...c, online: false } : c)),
         );
       }
+       return () => socket.close();
     };
-    return ()=>socket.close();
+   
   }, [activeChatId]);
 
-  async function openChat(id:string){
+  async function openChat(id: string) {
     setActiveChatId(id);
 
-    socketRef.current?.send(JSON.stringify({
-        type:"join_room",
-        roomId:id,
-    }));
+    socketRef.current?.send(
+      JSON.stringify({
+        type: "join_room",
+        roomId: id,
+      }),
+    );
 
-    const res = await fetch(`http://localhost:3001/messages/${id}`,{
-        headers:{
-            Authorization:localStorage.getItem("token")||"",
-        },
+    const res = await fetch(`http://localhost:3001/messages/${id}`, {
+      headers: {
+        Authorization: localStorage.getItem("token") || "",
+      },
     });
     const data = await res.json();
 
-    setChats(prev =>
-      prev.map(c =>
+    setChats((prev) =>
+      prev.map((c) =>
         c.id === id
           ? {
               ...c,
               messages: data.messages.map(formatMsg),
               unread: 0,
             }
-          : c
-      )
+          : c,
+      ),
     );
 
-    socketRef.current?.send(JSON.stringify({
-        type:"read",
-        roomId:id,
-    }));
-  };
+    socketRef.current?.send(
+      JSON.stringify({
+        type: "read",
+        roomId: id,
+      }),
+    );
+  }
 
-  function sendMessage(){
-    if(!input.trim()||!socketRef.current)return;
+  function sendMessage() {
+    if (!input.trim() || !socketRef.current) return;
 
-    socketRef.current.send(JSON.stringify({
-        type:"chat",
-        message:input,
-    }));
+    socketRef.current.send(
+      JSON.stringify({
+        type: "chat",
+        message: input,
+      }),
+    );
     setInput("");
-  };
+  }
 
   return (
     <div className="h-screen flex bg-gray-950 text-white">
-
       {/* Sidebar */}
       <div className="w-72 border-r border-gray-800 p-3">
         <h2 className="font-bold mb-3">Messages</h2>
 
         <input
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
           placeholder="Search..."
           className="w-full p-2 bg-gray-800 rounded mb-3"
         />
@@ -227,8 +234,8 @@ export default function Dashboard() {
           <p className="text-gray-500 text-sm">No chats</p>
         ) : (
           chats
-            .filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
-            .map(chat => (
+            .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
+            .map((chat) => (
               <div
                 key={chat.id}
                 onClick={() => openChat(chat.id)}
@@ -239,7 +246,9 @@ export default function Dashboard() {
                   <span className="text-xs text-gray-500">{chat.time}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-400">{chat.lastMessage}</span>
+                  <span className="text-sm text-gray-400">
+                    {chat.lastMessage}
+                  </span>
                   {chat.unread > 0 && (
                     <span className="bg-indigo-600 text-xs px-2 rounded-full">
                       {chat.unread}
@@ -253,7 +262,6 @@ export default function Dashboard() {
 
       {/* Chat */}
       <div className="flex-1 flex flex-col">
-
         {activeChat ? (
           <>
             {/* Header */}
@@ -263,7 +271,7 @@ export default function Dashboard() {
 
             {/* Messages */}
             <div className="flex-1 p-4 overflow-y-auto space-y-2">
-              {activeChat.messages.map(m => (
+              {activeChat.messages.map((m) => (
                 <div
                   key={m.id}
                   className={`flex ${m.senderId === ME ? "justify-end" : ""}`}
@@ -272,11 +280,14 @@ export default function Dashboard() {
                     {m.text}
                     <div className="text-xs text-gray-500 flex gap-1">
                       {m.time}
-                      {m.senderId === ME && (
-                        m.status === "read" ? <CheckCheck size={12} /> :
-                        m.status === "delivered" ? <CheckCheck size={12} /> :
-                        <Check size={12} />
-                      )}
+                      {m.senderId === ME &&
+                        (m.status === "read" ? (
+                          <CheckCheck size={12} />
+                        ) : m.status === "delivered" ? (
+                          <CheckCheck size={12} />
+                        ) : (
+                          <Check size={12} />
+                        ))}
                     </div>
                   </div>
                 </div>
@@ -288,7 +299,7 @@ export default function Dashboard() {
               <input
                 ref={inputRef}
                 value={input}
-                onChange={e => setInput(e.target.value)}
+                onChange={(e) => setInput(e.target.value)}
                 className="flex-1 bg-gray-800 p-2 rounded"
               />
               <button onClick={sendMessage}>
@@ -301,7 +312,6 @@ export default function Dashboard() {
             Select a chat
           </div>
         )}
-
       </div>
     </div>
   );

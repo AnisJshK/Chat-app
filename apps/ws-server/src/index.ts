@@ -28,6 +28,7 @@ wss.on("connection", async(socket, request) => {
 
     const params = new URLSearchParams(request.url?.split("?")[1]);
     const token = params.get("token");
+    // console.log("Token:", token);
 
     if (!token) {
         socket.close();
@@ -39,8 +40,10 @@ wss.on("connection", async(socket, request) => {
     try {
         const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
         userId = decoded.userId;
+        //  console.log("User verified:", decoded);
     } catch (error) {
         socket.close();
+        // console.log("JWT ERROR: ",error)
         return;
     }
 
