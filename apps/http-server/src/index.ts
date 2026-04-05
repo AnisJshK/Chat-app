@@ -12,7 +12,8 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+// const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = "34gfgarg45gfbrw";
 
 
 app.post("/user/signup", async (req, res) => {
